@@ -22,13 +22,13 @@ Nosso foco é criar ferramentas úteis, organizadas e eficientes para resolver p
 
 ---
 
-## 📊 Projetos principais
+## 📊 Projetos de densevolvimento principais
 
-### ERP Empresarial
+### ERP Empresarial - em desenvolvimento
 
 Sistema voltado para organização de processos internos, controle administrativo, relatórios e expansão modular de funcionalidades.
 
-### Gestão de Licitações com Integração PNCP
+### Gestão de Licitações com Integração PNCP -  em desenvolvimento
 
 Plataforma para acompanhamento e organização de licitações públicas, integrada ao **PNCP — Portal Nacional de Contratações Públicas**.
 
