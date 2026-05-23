@@ -1,0 +1,6 @@
+name,email,sources
+"João Silva","joao.silva@cliente.com.br","inbox:from; sent:to"
+"Maria Souza","maria.souza@fornecedor.com.br","sent:to"
+"Carlos Almeida","carlos.almeida@empresa.com.br","inbox:cc"
+"Ana Pereira","ana.pereira@parceiro.com.br","inbox:from; sent:cc"
+"Financeiro Cliente","financeiro@cliente.com.br","sent:to"
