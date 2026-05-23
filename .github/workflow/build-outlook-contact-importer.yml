@@ -1,0 +1,51 @@
+name: Build Outlook Contact Importer
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "microsoft/outlook-contact-importer/**"
+      - ".github/workflows/build-outlook-contact-importer.yml"
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        working-directory: microsoft/outlook-contact-importer
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: microsoft/outlook-contact-importer/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build executables
+        run: npm run build
+
+      - name: Prepare package
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item dist\*.exe release\
+          Copy-Item README.md release\
+          Copy-Item .env.example release\
+          New-Item -ItemType Directory -Force -Path release\data
+          Copy-Item data\output-example.csv release\data\
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: outlook-contact-importer-windows
+          path: microsoft/outlook-contact-importer/release
