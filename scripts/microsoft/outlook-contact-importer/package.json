@@ -3,8 +3,8 @@
   "scripts": {
     "preview": "node import-contacts-preview.js",
     "import": "node import-contacts-apply.js",
-    "build:preview": "pkg import-contacts-preview.js --targets node22-win-x64 --output dist/outlook-contacts-preview.exe",
-    "build:import": "pkg import-contacts-apply.js --targets node22-win-x64 --output dist/outlook-contacts-import.exe",
+    "build:preview": "pkg import-contacts-preview.js --targets node22-win-x64 --fallback-to-source --output dist/outlook-contacts-preview.exe",
+    "build:import": "pkg import-contacts-apply.js --targets node22-win-x64 --fallback-to-source --output dist/outlook-contacts-import.exe",
     "build": "npm run build:preview && npm run build:import"
   },
   "dependencies": {
