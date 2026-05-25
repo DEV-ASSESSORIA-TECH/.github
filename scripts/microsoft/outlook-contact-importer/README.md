@@ -1,28 +1,59 @@
-# Instalador Outlook Contact Importer
+# Outlook Contact Importer
 
-Script `.bat` para baixar, configurar e executar o **Outlook Contact Importer** em máquinas Windows sem exigir instalação manual de Node.js ou npm.
+Ferramenta em Node.js para recuperar contatos a partir de e-mails existentes em uma conta Microsoft 365.
 
-O arquivo guia o usuário pelo processo de configuração, baixa os executáveis da release do GitHub, cria o arquivo `.env`, executa a geração do CSV de prévia e depois executa a importação dos contatos.
+O projeto lê mensagens da **Caixa de Entrada** e dos **Itens Enviados**, extrai remetentes e destinatários, remove duplicados, gera um CSV para revisão e, após confirmação manual, cria os contatos no Outlook.
 
 ## Objetivo
 
-Facilitar o uso do importador de contatos em máquinas de usuários comuns.
+Este script foi criado para cenários de migração de e-mails, especialmente quando mensagens foram migradas de outro provedor, como cPanel, mas os contatos do usuário não foram importados.
 
-A pessoa precisa apenas executar o `.bat`. O script cuida de:
+Ele ajuda a reconstruir uma lista inicial de contatos a partir dos próprios e-mails enviados e recebidos.
 
-- Baixar os executáveis necessários
-- Criar a pasta `data`
-- Solicitar `TENANT_ID` e `CLIENT_ID`
-- Criar o arquivo `.env`
-- Executar o preview dos contatos
-- Abrir o CSV para revisão
-- Executar a importação após confirmação
+## Funcionalidades
 
-## Requisitos
+- Login individual com conta Microsoft 365
+- Autenticação via Device Code
+- Leitura da Caixa de Entrada
+- Leitura dos Itens Enviados
+- Extração de remetentes e destinatários
+- Remoção de e-mails duplicados
+- Filtros para ignorar e-mails automáticos
+- Geração de CSV para revisão
+- Importação de contatos somente após confirmação
+- Verificação de contatos já existentes no Outlook
+- Geração de executáveis `.exe` para Windows
+- Suporte a execução sem Node.js/npm na máquina final
+- Workflow de release via GitHub Actions
 
-Antes de executar o `.bat`, é necessário ter um **App Registration** criado no Microsoft Entra ID.
+## Estrutura do projeto
 
-O app deve ter as permissões delegadas:
+```txt
+outlook-contact-importer/
+├─ data/
+│  └─ output-example.csv
+├─ import-contacts-preview.js
+├─ import-contacts-apply.js
+├─ run-outlook-contact-importer.bat
+├─ package.json
+├─ package-lock.json
+├─ .env.example
+├─ .gitignore
+└─ README.md
+```
+
+## Requisitos para desenvolvimento
+
+- Node.js 22 ou superior
+- npm
+- Conta Microsoft 365 com Exchange Online
+- App Registration no Microsoft Entra ID
+
+## App Registration
+
+No Microsoft Entra ID, crie um App Registration para o importador.
+
+Permissões delegadas necessárias no Microsoft Graph:
 
 ```txt
 User.Read
@@ -36,87 +67,57 @@ Também é necessário ativar:
 Permitir fluxos de cliente público
 ```
 
-ou, em inglês:
+ou:
 
 ```txt
 Allow public client flows
 ```
 
-Depois disso, o administrador deve conceder consentimento para o app.
+Após adicionar as permissões, conceda consentimento de administrador para o aplicativo.
 
-## Arquivos baixados
+## Configuração local
 
-O `.bat` baixa os executáveis da release mais recente do GitHub:
+Crie um arquivo `.env` na raiz do projeto com base no `.env.example`:
 
-```txt
-outlook-contacts-preview.exe
-outlook-contacts-import.exe
-```
-
-Esses arquivos são baixados para a mesma pasta onde o `.bat` está sendo executado.
-
-## Estrutura final esperada
-
-Após a execução, a pasta ficará parecida com:
-
-```txt
-outlook-contact-importer/
-├─ data/
-│  └─ contacts-preview.csv
-├─ .env
-├─ outlook-contacts-preview.exe
-├─ outlook-contacts-import.exe
-└─ run-outlook-contact-importer.bat
-```
-
-## Como usar
-
-Execute o arquivo:
-
-```bat
-run-outlook-contact-importer.bat
-```
-
-O script perguntará se o App Registration já foi criado e autorizado.
-
-Depois, caso ainda não exista um `.env`, ele pedirá:
-
-```txt
-TENANT_ID
-CLIENT_ID
+```env
+TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+CLIENT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
 ```
 
 Onde:
 
-- `TENANT_ID` é o ID do diretório/locatário
+- `TENANT_ID` é o ID do locatário/diretório
 - `CLIENT_ID` é o ID do aplicativo/cliente
 
-## Fluxo de execução
+## Instalação
 
-O fluxo executado pelo `.bat` é:
-
-```txt
-1. Verifica se o App Registration já foi configurado
-2. Cria a pasta data, se ela não existir
-3. Baixa os executáveis da release do GitHub
-4. Cria ou reutiliza o arquivo .env
-5. Executa o preview
-6. Gera data/contacts-preview.csv
-7. Abre o CSV no Bloco de Notas
-8. Aguarda revisão do usuário
-9. Executa a importação
-10. Finaliza o processo
+```bash
+npm install
 ```
 
-## Preview dos contatos
+## Scripts disponíveis
 
-Na primeira etapa, o script executa:
-
-```txt
-outlook-contacts-preview.exe
+```json
+{
+  "preview": "node import-contacts-preview.js",
+  "import": "node import-contacts-apply.js",
+  "build:preview": "pkg import-contacts-preview.js --targets node22-win-x64 --fallback-to-source --output dist/outlook-contacts-preview.exe",
+  "build:import": "pkg import-contacts-apply.js --targets node22-win-x64 --fallback-to-source --output dist/outlook-contacts-import.exe",
+  "build": "npm run build:preview && npm run build:import"
+}
 ```
 
-Esse executável lê mensagens da Caixa de Entrada e Itens Enviados da conta logada, extrai os contatos encontrados e gera:
+## Uso em desenvolvimento
+
+### 1. Gerar prévia dos contatos
+
+```bash
+npm run preview
+```
+
+O script solicitará login Microsoft pelo navegador.
+
+Após a autenticação, será gerado:
 
 ```txt
 data/contacts-preview.csv
@@ -124,11 +125,13 @@ data/contacts-preview.csv
 
 Nenhum contato é criado nessa etapa.
 
-## Revisão do CSV
+### 2. Revisar o CSV
 
-Após o preview, o CSV será aberto automaticamente no Bloco de Notas.
+Abra o arquivo gerado:
 
-Revise o arquivo antes de continuar.
+```powershell
+notepad .\data\contacts-preview.csv
+```
 
 Remova contatos indesejados, como:
 
@@ -139,108 +142,232 @@ mailer-daemon
 postmaster
 notificações automáticas
 sistemas
+e-mails inválidos
 e-mails que não devem virar contato
 ```
 
-## Importação dos contatos
+### 3. Importar contatos
 
-Depois da revisão, o `.bat` pergunta se o usuário deseja continuar.
+Após revisar o CSV:
 
-Se confirmado, ele executa:
-
-```txt
-outlook-contacts-import.exe
+```bash
+npm run import
 ```
 
-Dentro do importador, ainda será necessário digitar:
+O script mostrará um resumo da importação.
+
+Para confirmar, digite exatamente:
 
 ```txt
 IMPORTAR
 ```
 
-Essa confirmação evita criação acidental de contatos.
+Se qualquer outro valor for informado, a importação será cancelada.
+
+## Uso em máquinas sem Node.js
+
+O projeto pode gerar executáveis Windows:
+
+```bash
+npm run build
+```
+
+Os arquivos serão criados em:
+
+```txt
+dist/
+├─ outlook-contacts-preview.exe
+└─ outlook-contacts-import.exe
+```
+
+Esses executáveis podem ser usados em máquinas sem Node.js ou npm.
+
+A máquina final precisa apenas ter:
+
+```txt
+.env
+data/
+outlook-contacts-preview.exe
+outlook-contacts-import.exe
+```
+
+## Execução assistida via BAT
+
+O arquivo:
+
+```txt
+run-outlook-contact-importer.bat
+```
+
+pode ser usado para facilitar o processo em máquinas Windows.
+
+Ele pode:
+
+- Baixar os executáveis da release do GitHub
+- Criar a pasta `data`
+- Solicitar `TENANT_ID` e `CLIENT_ID`
+- Criar o arquivo `.env`
+- Executar o preview
+- Abrir o CSV para revisão
+- Executar a importação
+
+## Build
+
+Para gerar os executáveis localmente:
+
+```bash
+npm run build
+```
+
+Saída esperada:
+
+```txt
+dist/
+├─ outlook-contacts-preview.exe
+└─ outlook-contacts-import.exe
+```
+
+## Release via GitHub Actions
+
+O projeto pode ser publicado por tag usando GitHub Actions.
+
+Padrão de tag:
+
+```txt
+outlook-contact-importer-v1.0.0
+```
+
+Exemplo:
+
+```powershell
+git tag outlook-contact-importer-v1.0.0
+git push origin outlook-contact-importer-v1.0.0
+```
+
+A release deve publicar os seguintes assets:
+
+```txt
+outlook-contacts-preview.exe
+outlook-contacts-import.exe
+outlook-contact-importer-windows.zip
+```
+
+Os executáveis separados são importantes para permitir que o `.bat` baixe apenas os arquivos necessários.
+
+## Arquivos que não devem ser versionados
+
+Não suba para o GitHub:
+
+```txt
+node_modules/
+dist/
+release/
+.env
+data/contacts-preview.csv
+```
+
+Esses arquivos devem ficar no `.gitignore`.
+
+## Arquivos que devem ser versionados
+
+Suba para o GitHub:
+
+```txt
+import-contacts-preview.js
+import-contacts-apply.js
+run-outlook-contact-importer.bat
+package.json
+package-lock.json
+.env.example
+README.md
+data/output-example.csv
+.gitignore
+```
+
+## Exemplo de .gitignore
+
+```gitignore
+node_modules/
+dist/
+release/
+.env
+
+data/contacts-preview.csv
+data/*.local.csv
+data/*.private.csv
+
+.DS_Store
+Thumbs.db
+```
+
+## Diferença entre contatos e AutoComplete
+
+O Outlook possui uma lista de sugestões que aparece quando o usuário começa a digitar um endereço.
+
+Essa lista não é exatamente a mesma coisa que a lista de contatos.
+
+Este projeto cria contatos reais no Outlook. Esses contatos podem ajudar nas sugestões futuras, mas o script não manipula diretamente o cache interno de AutoComplete do Outlook.
+
+## Limitações
+
+- Não acessa diretamente o cache de AutoComplete
+- Não remove contatos existentes
+- Não atualiza contatos já existentes
+- Não importa fotos de contatos
+- Não sincroniza contatos continuamente
+- Não executa em múltiplas caixas automaticamente
+- Não substitui uma ferramenta corporativa de migração
 
 ## Erros comuns
 
-### Falha ao baixar executáveis
+### `invalid_client`
 
-Verifique:
-
-```txt
-- Se a release existe no GitHub
-- Se os assets têm os nomes corretos
-- Se o repositório ou release está acessível
-- Se a internet está funcionando
-```
-
-Assets esperados:
+Verifique se o App Registration está com fluxo de cliente público habilitado:
 
 ```txt
-outlook-contacts-preview.exe
-outlook-contacts-import.exe
+Permitir fluxos de cliente público: Sim
 ```
 
-### Erro no preview
+### Permissão negada
 
-Possíveis causas:
+Confirme se o app possui as permissões delegadas:
 
 ```txt
-- TENANT_ID incorreto
-- CLIENT_ID incorreto
-- App Registration sem permissões corretas
-- Consentimento de administrador não concedido
-- Conta sem Exchange Online
-- Problema de autenticação Microsoft
+User.Read
+Mail.Read
+Contacts.ReadWrite
 ```
 
-### Erro na importação
+E se o consentimento de administrador foi concedido.
 
-Possíveis causas:
+### CSV não encontrado
+
+Execute primeiro:
+
+```bash
+npm run preview
+```
+
+Ou confirme se o arquivo existe em:
 
 ```txt
-- CSV inválido
-- Permissão Contacts.ReadWrite ausente
-- Consentimento de administrador ausente
-- Conta sem permissão para criar contatos
-- Erro de conexão com Microsoft Graph
+data/contacts-preview.csv
 ```
 
-### Arquivo .env incorreto
+### Executável não encontra `.env`
 
-O `.env` deve seguir este formato:
+O arquivo `.env` deve estar na mesma pasta em que o executável está sendo executado.
 
-```env
-TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-CLIENT_ID=yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
-```
-
-Sem aspas, sem espaços extras e sem ponto e vírgula.
-
-## Observações
-
-Este script não armazena senha do usuário.
-
-A autenticação é feita pela Microsoft usando login via navegador/dispositivo.
-
-O `.bat` apenas cria o arquivo `.env` com os IDs públicos necessários para identificar o App Registration.
-
-## GitHub Release
-
-Para o `.bat` funcionar corretamente, a release do GitHub precisa publicar os executáveis separadamente:
+Exemplo:
 
 ```txt
-outlook-contacts-preview.exe
-outlook-contacts-import.exe
+outlook-contact-importer/
+├─ .env
+├─ data/
+├─ outlook-contacts-preview.exe
+└─ outlook-contacts-import.exe
 ```
-
-O `.bat` usa a URL da release mais recente:
-
-```txt
-https://github.com/OWNER/REPO/releases/latest/download/NOME_DO_ARQUIVO.exe
-```
-
-Se o repositório for privado, o download direto pode falhar. Nesse caso, use links internos do SharePoint ou mantenha os executáveis em um local acessível pela rede.
 
 ## Status
 
-Script auxiliar para distribuição simplificada do Outlook Contact Importer em ambientes Windows.
+Projeto utilitário para migrações pontuais de contatos para Microsoft 365, com execução manual, revisão prévia e confirmação antes da criação dos contatos.
