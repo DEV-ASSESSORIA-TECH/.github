@@ -1,13 +1,12 @@
-name: Build Outlook Contact Importer
+name: Release Outlook Contact Importer
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - "microsoft/outlook-contact-importer/**"
-      - ".github/workflows/build-outlook-contact-importer.yml"
-    branches:
-      - main
+    tags:
+      - "outlook-contact-importer-v*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -15,7 +14,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: microsoft/outlook-contact-importer
+        working-directory: scripts/microsoft/outlook-contact-importer
 
     steps:
       - name: Checkout
@@ -26,7 +25,7 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: microsoft/outlook-contact-importer/package-lock.json
+          cache-dependency-path: scripts/microsoft/outlook-contact-importer/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -34,18 +33,35 @@ jobs:
       - name: Build executables
         run: npm run build
 
-      - name: Prepare package
+      - name: Prepare release folder
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force -Path release
-          Copy-Item dist\*.exe release\
+          New-Item -ItemType Directory -Force -Path release\data
+
+          Copy-Item dist\outlook-contacts-preview.exe release\
+          Copy-Item dist\outlook-contacts-import.exe release\
           Copy-Item README.md release\
           Copy-Item .env.example release\
-          New-Item -ItemType Directory -Force -Path release\data
           Copy-Item data\output-example.csv release\data\
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: outlook-contact-importer-windows
-          path: microsoft/outlook-contact-importer/release
+          if (Test-Path run-outlook-contact-importer.bat) {
+            Copy-Item run-outlook-contact-importer.bat release\
+          }
+
+      - name: Compress release package
+        shell: powershell
+        run: |
+          Compress-Archive -Path release\* -DestinationPath outlook-contact-importer-windows.zip -Force
+
+      - name: Create GitHub Release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME `
+            dist\outlook-contacts-preview.exe `
+            dist\outlook-contacts-import.exe `
+            outlook-contact-importer-windows.zip `
+            --title "Outlook Contact Importer $env:GITHUB_REF_NAME" `
+            --notes "Release automática do Outlook Contact Importer."
